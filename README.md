@@ -58,7 +58,7 @@ Files: ONE growing notebook `notebooks/fraud_pipeline.ipynb` (each step adds a s
 - [x] 05 Boosting: AdaBoost idea → gradient boosting → playground §C
 - [x] 06 LightGBM vs XGBoost vs CatBoost + imbalance → pipeline §3
 - [x] 07 Metrics: precision/recall/F1, ROC-AUC vs PR-AUC → pipeline §4 + playground §D
-- [ ] 08 Optuna tuning → pipeline §5
+- [x] 08 Optuna tuning → pipeline §5 + playground §E
 - [ ] 09 Calibration: reliability curve, Brier, isotonic vs Platt → pipeline §6
 - [ ] 10 Expected-cost threshold → pipeline §7
 - [ ] 11 SHAP + PSI/KS drift → pipeline §8–§9
