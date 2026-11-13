@@ -1,0 +1,11 @@
+# Files Git should NEVER upload (too big, or private, or auto-generated)
+data/raw/*
+data/processed/*
+data/sample/*
+!data/**/.gitkeep
+models/*
+!models/.gitkeep
+__pycache__/
+.ipynb_checkpoints/
+.env
+reports/metrics_DEMO.json

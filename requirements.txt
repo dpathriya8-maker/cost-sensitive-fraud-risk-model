@@ -1,0 +1,23 @@
+# ---- data handling ----
+numpy          # fast number arrays
+pandas         # tables (DataFrames)
+pyarrow        # lets pandas save/read .parquet files (smaller and faster than CSV)
+
+# ---- machine learning ----
+scikit-learn   # splits, metrics, calibration (isotonic), simple trees
+lightgbm       # gradient boosting, model 1
+xgboost        # gradient boosting, model 2
+catboost       # gradient boosting, model 3
+optuna         # automatic hyperparameter search
+shap           # explains individual predictions
+
+# ---- plots ----
+matplotlib
+seaborn
+
+# ---- serving (Step 13) ----
+fastapi        # turns a Python function into a web API
+uvicorn        # the server that runs the FastAPI app
+joblib         # save/load trained models to/from disk
+
+# Exact versions get pinned in Step 13 (Docker needs fixed versions to be reproducible).
