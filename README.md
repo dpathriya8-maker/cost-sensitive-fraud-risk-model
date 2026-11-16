@@ -41,10 +41,11 @@ FastAPI /score endpoint  ──►  Docker container
 | data/sample | a small sample made on Kaggle (e.g. 50K rows) | lets the laptop run things without 1.3 GB of RAM |
 | data/processed | cleaned or merged data saved by notebooks | saves re-running slow steps |
 | notebooks | fraud_pipeline.ipynb (grows each step) + concepts_playground.ipynb | learning + experiments |
-| src | clean .py code: features, predict, drift | the API imports it (Step 11) |
+| src | `fraud_service.py`: loads the 4 trained files once; `score()` + `drift()` | the API imports it (Step 11) |
 | models | saved model + calibrator files | the API loads them |
 | reports | figures + metrics.json | your REAL numbers for interviews |
-| api | FastAPI app | Step 11 |
+| api | `main.py`: FastAPI app with GET /health, POST /score, POST /drift | Step 11 |
+| tests | `test_api.py`: 4 quick API tests (`pytest -q`) | Step 11 |
 | notes | step notes, interview lines, handoff card | revision before interviews |
 
 ## Step checklist
@@ -62,10 +63,10 @@ Files: ONE growing notebook `notebooks/fraud_pipeline.ipynb` (each step adds a s
 - [x] 08b Re-teach: TPE by hand → playground §E2
 - [x] 09 Calibration + expected-cost threshold (merged, one-day mode) → pipeline §6–§7 + playground §F
 - [x] 10 SHAP + PSI/KS drift → pipeline §8–§9 (needs `pip install shap` on the laptop)
-- [ ] 11 FastAPI + Docker → `src/`, `api/main.py`, `Dockerfile`
+- [x] 11 FastAPI + Docker → pipeline §10 (export) + `src/fraud_service.py`, `api/main.py`, `Dockerfile`, `requirements-serve.txt`, `tests/test_api.py`
 - [ ] 12 Wrap-up: mock OA + mock interview + handoff card → `notes/handoff-fraud.md`
 
-Kaggle checkpoints (Run All, optional but gives your real numbers): now (after Step 9), and after Step 10.
+Kaggle checkpoint (Run All, optional but gives your real numbers + the 4 model files for the API): now, after Step 11.
 
 ## My real results
 Fill ONLY from `reports/metrics.json` after running on Kaggle. Never type a number here that you didn't produce.
@@ -80,3 +81,22 @@ Fill ONLY from `reports/metrics.json` after running on Kaggle. Never type a numb
 - **Kaggle (heavy steps):** New Notebook → File → Import Notebook → pick the `.ipynb` from `notebooks/` → Add Input → Competition "IEEE-CIS Fraud Detection" → Run All. Download outputs from the right panel (Output) into `reports/` and `models/`.
 - **Laptop (light steps):** see the main `cv-projects/README.md` for how to open Jupyter. Install libraries once: `pip install -r requirements.txt`
 - **Laptop with no data = DEMO mode:** the notebook makes a small FAKE fraud-like table so every cell runs in ~1 min (for practising the code). Demo numbers go to `reports/metrics_DEMO.json` and must never be quoted as results.
+
+## Run the API (Step 11)
+First fill `models/` with the 4 files the notebook writes (run it up to §10): `final_lightgbm_tuned.joblib`, `isotonic_calibrator.joblib`, `drift_reference.json`, `feature_info.json`.
+Then copy the pins from `reports/serving_versions.txt` into `requirements-serve.txt` (the model must load with the versions that trained it).
+
+**A. Laptop, no Docker (Anaconda Prompt, inside the project folder):**
+```
+pip install -r requirements-serve.txt
+uvicorn api.main:app --reload --port 8000
+```
+Open http://127.0.0.1:8000/docs → POST /score → "Try it out" → paste `{"TransactionAmt": 480, "ProductCD": "C", "P_emaildomain": "anonymous.com", "DeviceType": "mobile"}` → Execute.
+Tests: `pytest -q` (4 tests: health, score, bad input → 422, drift).
+
+**B. Docker (needs Docker Desktop on Windows):**
+```
+docker build -t fraud-api .
+docker run -p 8000:8000 fraud-api
+```
+Then the same http://127.0.0.1:8000/docs page.

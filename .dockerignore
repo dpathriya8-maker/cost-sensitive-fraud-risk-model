@@ -1,0 +1,10 @@
+# Things Docker should NOT copy into the image (big, private or not needed to serve)
+.git
+data/
+notebooks/
+reports/
+notes/
+tests/
+**/__pycache__
+**/.ipynb_checkpoints
+*.ipynb

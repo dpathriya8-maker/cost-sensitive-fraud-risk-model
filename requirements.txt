@@ -15,9 +15,11 @@ shap           # explains individual predictions
 matplotlib
 seaborn
 
-# ---- serving (Step 13) ----
+# ---- serving (Step 11) ----
 fastapi        # turns a Python function into a web API
 uvicorn        # the server that runs the FastAPI app
 joblib         # save/load trained models to/from disk
+httpx          # needed by FastAPI's TestClient (tests/test_api.py)
+pytest         # runs the tests:  pytest -q
 
-# Exact versions get pinned in Step 13 (Docker needs fixed versions to be reproducible).
+# Exact versions for serving are pinned in requirements-serve.txt (used by the Dockerfile).
