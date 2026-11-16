@@ -45,7 +45,13 @@ class FraudScorer:
         self.text_columns = set(info["text_columns"])
         self.false_alarm_cost = float(info["false_alarm_cost"])
         self.model_version = info["model_version"]
-        self.drift_reference = json.loads((model_dir / "drift_reference.json").read_text())  # train bins (§9)
+        reference = json.loads((model_dir / "drift_reference.json").read_text())   # train bins (§9)
+        self.drift_reference = {}
+        for feature, value in reference.items():
+            if isinstance(value, list):                    # older §9 format: a plain list of 11 decile edges
+                n_bins = len(value) - 1
+                value = {"inner_edges": value[1:-1], "expected_share": [1 / n_bins] * n_bins}
+            self.drift_reference[feature] = value
         self.explainer = shap.TreeExplainer(self.model)                             # built once, reused per request
 
     def to_table(self, transactions):
