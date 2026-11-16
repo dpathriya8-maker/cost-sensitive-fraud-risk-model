@@ -20,7 +20,7 @@ LightGBM | XGBoost | CatBoost  ◄── Optuna tunes settings (scored on valid 
   ▼
 isotonic calibration (fit on held-out data)  ──►  PR-AUC + Brier
   ▼
-threshold = lowest expected ₹ cost  ──►  SHAP explanations + PSI/KS drift
+threshold = lowest expected $ cost  ──►  SHAP explanations + PSI/KS drift
   ▼
 FastAPI /score endpoint  ──►  Docker container
 ```
@@ -30,8 +30,8 @@ FastAPI /score endpoint  ──►  Docker container
 | CV bullet | Files | Step |
 |---|---|---|
 | B1: Optuna-tuned LightGBM, XGBoost, CatBoost on 590K+ transactions, 390+ features, class imbalance | pipeline §1–§3, §5 + playground | 1–6, 8 |
-| B2: isotonic calibration, PR-AUC + Brier, thresholds by expected monetary cost | pipeline §4, §6, §7 | 7, 9, 10 |
-| B3: PSI/KS drift detection + SHAP explainability, containerised FastAPI service on Docker | pipeline §8–§9 + src/, api/, Dockerfile | 11–12 |
+| B2: isotonic calibration, PR-AUC + Brier, thresholds by expected monetary cost | pipeline §4, §6, §7 + playground §F | 7, 9 |
+| B3: PSI/KS drift detection + SHAP explainability, containerised FastAPI service on Docker | pipeline §8–§9 + src/, api/, Dockerfile | 10–11 |
 
 ## Folder map
 
@@ -41,10 +41,10 @@ FastAPI /score endpoint  ──►  Docker container
 | data/sample | a small sample made on Kaggle (e.g. 50K rows) | lets the laptop run things without 1.3 GB of RAM |
 | data/processed | cleaned or merged data saved by notebooks | saves re-running slow steps |
 | notebooks | fraud_pipeline.ipynb (grows each step) + concepts_playground.ipynb | learning + experiments |
-| src | clean .py code: features, predict, drift | the API imports it (Step 13) |
+| src | clean .py code: features, predict, drift | the API imports it (Step 11) |
 | models | saved model + calibrator files | the API loads them |
 | reports | figures + metrics.json | your REAL numbers for interviews |
-| api | FastAPI app | Step 13 |
+| api | FastAPI app | Step 11 |
 | notes | step notes, interview lines, handoff card | revision before interviews |
 
 ## Step checklist
@@ -59,13 +59,13 @@ Files: ONE growing notebook `notebooks/fraud_pipeline.ipynb` (each step adds a s
 - [x] 06 LightGBM vs XGBoost vs CatBoost + imbalance → pipeline §3
 - [x] 07 Metrics: precision/recall/F1, ROC-AUC vs PR-AUC → pipeline §4 + playground §D
 - [x] 08 Optuna tuning → pipeline §5 + playground §E
-- [ ] 09 Calibration: reliability curve, Brier, isotonic vs Platt → pipeline §6
-- [ ] 10 Expected-cost threshold → pipeline §7
-- [ ] 11 SHAP + PSI/KS drift → pipeline §8–§9
-- [ ] 12 FastAPI + Docker → `src/`, `api/main.py`, `Dockerfile`
-- [ ] 13 Wrap-up: mock OA + mock interview + handoff card → `notes/handoff-fraud.md`
+- [x] 08b Re-teach: TPE by hand → playground §E2
+- [x] 09 Calibration + expected-cost threshold (merged, one-day mode) → pipeline §6–§7 + playground §F
+- [ ] 10 SHAP + PSI/KS drift → pipeline §8–§9
+- [ ] 11 FastAPI + Docker → `src/`, `api/main.py`, `Dockerfile`
+- [ ] 12 Wrap-up: mock OA + mock interview + handoff card → `notes/handoff-fraud.md`
 
-Kaggle checkpoints (Run All, optional but gives your real numbers): after Step 2, after Step 10, after Step 11.
+Kaggle checkpoints (Run All, optional but gives your real numbers): now (after Step 9), and after Step 10.
 
 ## My real results
 Fill ONLY from `reports/metrics.json` after running on Kaggle. Never type a number here that you didn't produce.
