@@ -61,7 +61,7 @@ Files: ONE growing notebook `notebooks/fraud_pipeline.ipynb` (each step adds a s
 - [x] 08 Optuna tuning → pipeline §5 + playground §E
 - [x] 08b Re-teach: TPE by hand → playground §E2
 - [x] 09 Calibration + expected-cost threshold (merged, one-day mode) → pipeline §6–§7 + playground §F
-- [ ] 10 SHAP + PSI/KS drift → pipeline §8–§9
+- [x] 10 SHAP + PSI/KS drift → pipeline §8–§9 (needs `pip install shap` on the laptop)
 - [ ] 11 FastAPI + Docker → `src/`, `api/main.py`, `Dockerfile`
 - [ ] 12 Wrap-up: mock OA + mock interview + handoff card → `notes/handoff-fraud.md`
 
