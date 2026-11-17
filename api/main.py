@@ -3,17 +3,21 @@
 Run on your laptop (from the project folder, in Anaconda Prompt):
     pip install -r requirements-serve.txt
     uvicorn api.main:app --reload --port 8000
-Then open http://127.0.0.1:8000/docs to try every endpoint in the browser.
+Then open http://127.0.0.1:8000 for the phone-friendly demo page,
+or http://127.0.0.1:8000/docs to try every endpoint.
 """
 import os                                              # read environment variables (MODEL_DIR)
 from contextlib import asynccontextmanager             # lets us run code at server start and stop
+from pathlib import Path                               # find demo.html next to this file
 
 from fastapi import FastAPI                            # the web framework
+from fastapi.responses import HTMLResponse             # send a web page instead of JSON
 from pydantic import BaseModel, ConfigDict, Field      # input/output schemas with automatic checking
 
 from src.fraud_service import FraudScorer              # our scoring logic (src/fraud_service.py)
 
 MODEL_DIR = os.getenv("MODEL_DIR", "models")           # folder with the 4 trained files; Docker sets it to /app/models
+DEMO_PAGE = Path(__file__).parent / "demo.html"        # the small web form (api/demo.html)
 state = {}                                             # holds the loaded scorer while the server runs
 
 
@@ -55,6 +59,12 @@ class ScoreResponse(BaseModel):
 
 class DriftRequest(BaseModel):
     transactions: list[Transaction] = Field(min_length=50, description="at least 50 recent transactions")
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def demo_page():
+    """Phone-friendly form that calls POST /score (open the server's address in any browser)."""
+    return DEMO_PAGE.read_text(encoding="utf-8")
 
 
 @app.get("/health")

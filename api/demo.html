@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fraud risk scoring demo</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2330; --muted:#5d6675; --line:#dfe3ea;
+          --accent:#2f5bd3; --flag:#c8352b; --flag-bg:#fdecea; --pass:#1f7a4d; --pass-bg:#e6f4ec; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171d; --card:#1d222b; --ink:#e8ebf0; --muted:#9aa3b2; --line:#2e3542;
+            --accent:#7b9cf0; --flag:#ff7b72; --flag-bg:#3a1f1d; --pass:#5fd39a; --pass-bg:#18321f; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:560px; margin:0 auto; padding:20px 16px 40px; }
+  h1 { font-size:1.35rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:.92rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
+  label { display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px; }
+  input, select { width:100%; padding:10px; font-size:1rem; border:1px solid var(--line); border-radius:8px;
+                  background:var(--bg); color:var(--ink); }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  details { margin-top:12px; }
+  summary { cursor:pointer; color:var(--accent); font-size:.92rem; }
+  .buttons { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  button { flex:1; padding:12px; font-size:1rem; border-radius:8px; border:1px solid var(--accent); cursor:pointer; }
+  .primary { background:var(--accent); color:#fff; }
+  .ghost { background:transparent; color:var(--accent); }
+  .badge { display:inline-block; font-weight:700; padding:4px 12px; border-radius:999px; font-size:1rem; }
+  .FLAG { color:var(--flag); background:var(--flag-bg); }
+  .PASS { color:var(--pass); background:var(--pass-bg); }
+  .big { font-size:2.2rem; font-weight:700; margin:6px 0 2px; }
+  .muted { color:var(--muted); font-size:.88rem; }
+  ul { padding-left:18px; margin:8px 0 0; }
+  li { margin:4px 0; }
+  .up { color:var(--flag); } .down { color:var(--pass); }
+  .error { color:var(--flag); }
+  footer { color:var(--muted); font-size:.82rem; }
+  footer a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Fraud risk scoring</h1>
+  <p class="sub">LightGBM trained on 590K card transactions (IEEE-CIS), calibrated with isotonic regression.
+    It flags a transaction when <b>p × amount &gt; (1 − p) × $10</b>, and explains every decision with SHAP.</p>
+
+  <form id="score-form" class="card">
+    <label for="TransactionAmt">Amount ($)</label>
+    <input id="TransactionAmt" type="number" min="0.01" step="0.01" value="480" required>
+
+    <div class="row">
+      <div>
+        <label for="ProductCD">Product code</label>
+        <select id="ProductCD">
+          <option>W</option><option selected>C</option><option>R</option><option>H</option><option>S</option>
+        </select>
+      </div>
+      <div>
+        <label for="DeviceType">Device</label>
+        <select id="DeviceType">
+          <option value="">unknown</option><option selected>mobile</option><option>desktop</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="P_emaildomain">Buyer email domain</label>
+    <select id="P_emaildomain">
+      <option value="">unknown</option><option>gmail.com</option><option>yahoo.com</option>
+      <option>hotmail.com</option><option>outlook.com</option><option selected>anonymous.com</option>
+    </select>
+
+    <details>
+      <summary>More columns (optional)</summary>
+      <div class="row">
+        <div><label for="card1">card1</label><input id="card1" type="number" step="any" placeholder="e.g. 9500"></div>
+        <div><label for="addr1">addr1</label><input id="addr1" type="number" step="any" placeholder="e.g. 299"></div>
+        <div><label for="C1">C1 (count)</label><input id="C1" type="number" step="any" placeholder="e.g. 1"></div>
+        <div><label for="C13">C13 (count)</label><input id="C13" type="number" step="any" placeholder="e.g. 1"></div>
+        <div><label for="D1">D1 (days)</label><input id="D1" type="number" step="any" placeholder="e.g. 0"></div>
+      </div>
+      <p class="muted">Empty fields are sent as missing. The model has 431 columns; this form fills only a few,
+        so treat the result as a demo.</p>
+    </details>
+
+    <div class="buttons">
+      <button type="submit" class="primary">Score it</button>
+      <button type="button" class="ghost" id="example-button">Fill an example</button>
+    </div>
+  </form>
+
+  <section id="result" class="card" hidden></section>
+
+  <footer>
+    <p>Endpoints: <a href="docs">/docs</a> (try every endpoint) · <a href="health">/health</a> ·
+      <a href="https://github.com/dpathriya8-maker/cost-sensitive-fraud-risk-model">code on GitHub</a></p>
+  </footer>
+</main>
+
+<script>
+  const numberFields = ["card1", "addr1", "C1", "C13", "D1"];
+  const textFields = ["ProductCD", "DeviceType", "P_emaildomain"];
+
+  function buildTransaction() {
+    const transaction = { TransactionAmt: parseFloat(document.getElementById("TransactionAmt").value) };
+    for (const name of textFields) {
+      const value = document.getElementById(name).value;
+      if (value !== "") transaction[name] = value;
+    }
+    for (const name of numberFields) {
+      const value = document.getElementById(name).value;
+      if (value !== "") transaction[name] = parseFloat(value);
+    }
+    return transaction;
+  }
+
+  function percent(value) {
+    return (value * 100).toFixed(value < 0.01 ? 2 : 1) + "%";
+  }
+
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+
+  function showResult(data) {
+    const reasons = data.top_reasons.map(reason => {
+      const towardFraud = reason.shap > 0;
+      return `<li><b>${escapeHtml(reason.feature)}</b> = ${escapeHtml(reason.value ?? "missing")}
+        <span class="${towardFraud ? "up" : "down"}">${towardFraud ? "▲" : "▼"} ${escapeHtml(reason.direction)}
+        (${reason.shap > 0 ? "+" : ""}${reason.shap.toFixed(2)})</span></li>`;
+    }).join("");
+    const box = document.getElementById("result");
+    box.innerHTML = `
+      <span class="badge ${data.decision}">${data.decision}</span>
+      <div class="big">${percent(data.fraud_probability)}</div>
+      <div class="muted">calibrated fraud probability · raw model score ${percent(data.raw_score)}</div>
+      <p class="muted">For this amount the cut-off is ${percent(data.threshold_for_this_amount)}
+        (= 10 / (10 + amount)). Above it, a review costs less than the expected fraud loss.</p>
+      <b>Top reasons (SHAP, log-odds)</b>
+      <ul>${reasons}</ul>`;
+    box.hidden = false;
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  async function scoreTransaction(event) {
+    event.preventDefault();
+    const box = document.getElementById("result");
+    box.hidden = false;
+    box.innerHTML = '<span class="muted">Scoring…</span>';
+    try {
+      const response = await fetch("score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildTransaction()),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const message = Array.isArray(data.detail) ? data.detail.map(d => d.msg).join("; ") : JSON.stringify(data);
+        box.innerHTML = `<span class="error">Input problem (${response.status}): ${escapeHtml(message)}</span>`;
+        return;
+      }
+      showResult(data);
+    } catch (error) {
+      box.innerHTML = `<span class="error">Could not reach the API: ${escapeHtml(error.message)}</span>`;
+    }
+  }
+
+  const examples = [
+    { TransactionAmt: 480, ProductCD: "C", DeviceType: "mobile", P_emaildomain: "anonymous.com", C1: 16, C13: 1, D1: 0 },
+    { TransactionAmt: 59, ProductCD: "W", DeviceType: "", P_emaildomain: "gmail.com", card1: 9500, addr1: 299, C1: 1, C13: 1, D1: 120 },
+  ];
+  let exampleIndex = 0;
+  document.getElementById("example-button").addEventListener("click", () => {
+    const example = examples[exampleIndex % examples.length];
+    exampleIndex += 1;
+    for (const name of ["TransactionAmt", ...textFields, ...numberFields]) {
+      document.getElementById(name).value = example[name] ?? "";
+    }
+    document.querySelector("details").open = true;
+  });
+  document.getElementById("score-form").addEventListener("submit", scoreTransaction);
+</script>
+</body>
+</html>

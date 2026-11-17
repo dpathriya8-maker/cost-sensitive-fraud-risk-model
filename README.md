@@ -121,7 +121,7 @@ Random baseline PR-AUC = fraud rate ≈ 0.034. Leakage demo: random split AUC 0.
 pip install -r requirements-serve.txt
 uvicorn api.main:app --reload --port 8000
 ```
-Open http://127.0.0.1:8000/docs → POST /score → "Try it out" → paste `{"TransactionAmt": 480, "ProductCD": "C", "P_emaildomain": "anonymous.com", "DeviceType": "mobile"}` → Execute.
+Open http://127.0.0.1:8000 for the phone-friendly demo page, or http://127.0.0.1:8000/docs → POST /score → "Try it out" → paste `{"TransactionAmt": 480, "ProductCD": "C", "P_emaildomain": "anonymous.com", "DeviceType": "mobile"}` → Execute.
 If your laptop's library versions differ from the pins, sklearn may print an `InconsistentVersionWarning`. That is a warning, not an error: it was tested and gives the same scores. Docker uses the exact pins.
 Tests: `pytest -q` (4 tests: health, score, bad input → 422, drift).
 
@@ -131,3 +131,8 @@ docker build -t fraud-api .
 docker run -p 8000:8000 fraud-api
 ```
 Then the same http://127.0.0.1:8000/docs page.
+
+**C. Public link (Hugging Face Space, free, works on a phone):** `deploy/huggingface/` holds the Space's `README.md` and `Dockerfile`.
+Upload them flat to a new Docker Space together with `requirements-serve.txt`, `src/fraud_service.py`, `api/main.py`, `api/demo.html`
+and the 4 model files. The Space builds the image and serves the demo page at `https://<username>-<space-name>.hf.space`.
+
