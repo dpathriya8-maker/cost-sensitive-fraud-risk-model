@@ -9,3 +9,4 @@ __pycache__/
 .ipynb_checkpoints/
 .env
 reports/metrics_DEMO.json
+kaggle_run/

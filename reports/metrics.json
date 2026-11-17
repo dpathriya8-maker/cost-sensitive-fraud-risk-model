@@ -1,0 +1,284 @@
+{
+  "step01_eda": {
+    "n_rows": 590540,
+    "n_columns_after_merge": 434,
+    "fraud_rate": 0.03499,
+    "always_legit_accuracy": 0.96501,
+    "share_rows_with_identity": 0.2442,
+    "n_columns_over_50pct_missing": 214,
+    "n_days": 182
+  },
+  "step02_split": {
+    "train_rows": 413378,
+    "valid_rows": 88581,
+    "test_rows": 88581,
+    "train_fraud_rate": 0.03517,
+    "valid_fraud_rate": 0.03434,
+    "test_fraud_rate": 0.0348,
+    "n_features": 431,
+    "leakage_demo_time_split_auc": 0.9204,
+    "leakage_demo_random_split_auc": 0.9525
+  },
+  "step03_models": {
+    "fast_mode": true,
+    "use_class_weight": false,
+    "imbalance_ratio": 27.43,
+    "models": [
+      {
+        "model": "LightGBM",
+        "valid_pr_auc": 0.6561,
+        "valid_roc_auc": 0.9276,
+        "mean_predicted_p": 0.0154,
+        "train_seconds": 350
+      },
+      {
+        "model": "XGBoost",
+        "valid_pr_auc": 0.5994,
+        "valid_roc_auc": 0.9151,
+        "mean_predicted_p": 0.0237,
+        "train_seconds": 954
+      },
+      {
+        "model": "CatBoost",
+        "valid_pr_auc": 0.5951,
+        "valid_roc_auc": 0.9092,
+        "mean_predicted_p": 0.0285,
+        "train_seconds": 2346
+      }
+    ],
+    "best_rounds": {
+      "LightGBM": 965,
+      "XGBoost": 775,
+      "CatBoost": 986
+    }
+  },
+  "step04_metrics": {
+    "best_model": "LightGBM",
+    "at_threshold_0_5": {
+      "tp": 1177,
+      "fp": 129,
+      "fn": 1865,
+      "tn": 85410,
+      "precision": 0.9012,
+      "recall": 0.3869
+    },
+    "per_model": [
+      {
+        "model": "LightGBM",
+        "pr_auc": 0.6561,
+        "roc_auc": 0.9276,
+        "recall_at_precision_50": 0.6752
+      },
+      {
+        "model": "XGBoost",
+        "pr_auc": 0.5994,
+        "roc_auc": 0.9151,
+        "recall_at_precision_50": 0.6016
+      },
+      {
+        "model": "CatBoost",
+        "pr_auc": 0.5951,
+        "roc_auc": 0.9092,
+        "recall_at_precision_50": 0.5947
+      }
+    ]
+  },
+  "step05_optuna": {
+    "n_trials": 20,
+    "tuned": {
+      "LightGBM": {
+        "best_valid_pr_auc": 0.658,
+        "best_params": {
+          "learning_rate": 0.12367033395649221,
+          "num_leaves": 375,
+          "min_child_samples": 24,
+          "colsample_bytree": 0.958597515914223,
+          "subsample": 0.6663213191976419,
+          "reg_lambda": 0.0363710790597004
+        }
+      }
+    },
+    "final_model": "LightGBM (Optuna-tuned)",
+    "final_valid_pr_auc": 0.6601
+  },
+  "step06_calibration": {
+    "fit_rows": 44290,
+    "check_rows": 44291,
+    "table": [
+      {
+        "version": "raw",
+        "check_brier": 0.02285,
+        "check_pr_auc": 0.57442,
+        "test_brier": 0.02355,
+        "test_pr_auc": 0.56214
+      },
+      {
+        "version": "platt",
+        "check_brier": 0.0231,
+        "check_pr_auc": 0.57442,
+        "test_brier": 0.02362,
+        "test_pr_auc": 0.56214
+      },
+      {
+        "version": "isotonic",
+        "check_brier": 0.01967,
+        "check_pr_auc": 0.55544,
+        "test_brier": 0.02147,
+        "test_pr_auc": 0.54181
+      },
+      {
+        "version": "always say base rate",
+        "check_brier": 0.03166,
+        "check_pr_auc": NaN,
+        "test_brier": 0.03359,
+        "test_pr_auc": NaN
+      }
+    ]
+  },
+  "step07_cost": {
+    "false_alarm_cost": 10.0,
+    "max_f1_threshold": 0.2609,
+    "average_fraud_amount": 173.53,
+    "formula_threshold": 0.0545,
+    "scan_threshold": 0.055,
+    "policies": [
+      {
+        "rule": "expected cost (isotonic p)",
+        "check_cost_$": 77126,
+        "test_cost_$": 161369,
+        "test_flagged": 7008,
+        "test_fraud_caught": 2011
+      },
+      {
+        "rule": "max-F1 threshold (isotonic p)",
+        "check_cost_$": 116148,
+        "test_cost_$": 283650,
+        "test_flagged": 2699,
+        "test_fraud_caught": 1589
+      },
+      {
+        "rule": "expected cost (raw p)",
+        "check_cost_$": 129706,
+        "test_cost_$": 309568,
+        "test_flagged": 1684,
+        "test_fraud_caught": 1251
+      },
+      {
+        "rule": "threshold 0.5 (isotonic p)",
+        "check_cost_$": 141977,
+        "test_cost_$": 332344,
+        "test_flagged": 1758,
+        "test_fraud_caught": 1301
+      },
+      {
+        "rule": "flag nothing (isotonic p)",
+        "check_cost_$": 220472,
+        "test_cost_$": 469608,
+        "test_flagged": 0,
+        "test_fraud_caught": 0
+      }
+    ]
+  },
+  "step08_shap": {
+    "base_value_log_odds": -13.9343,
+    "additivity_max_error": 0.0002647425045303464,
+    "top10_mean_abs_shap": {
+      "C13": 0.6661,
+      "TransactionAmt": 0.4757,
+      "C1": 0.4405,
+      "card1": 0.4081,
+      "card2": 0.3995,
+      "addr1": 0.3506,
+      "D1": 0.2811,
+      "C5": 0.2727,
+      "C14": 0.2714,
+      "C2": 0.2602
+    },
+    "riskiest_row_reason_codes": [
+      "C1 = 16.0 (+4.37)",
+      "V258 = 14.0 (+2.08)",
+      "C11 = 17.0 (+1.31)"
+    ]
+  },
+  "step09_drift": {
+    "rows": [
+      {
+        "feature": "C13",
+        "psi": 0.0248,
+        "ks": 0.07157210430485739,
+        "ks_p_value": 0.0,
+        "verdict": "stable"
+      },
+      {
+        "feature": "D1",
+        "psi": 0.0225,
+        "ks": 0.08602876680581667,
+        "ks_p_value": 0.0,
+        "verdict": "stable"
+      },
+      {
+        "feature": "C2",
+        "psi": 0.0164,
+        "ks": 0.05721801031178886,
+        "ks_p_value": 4.9058845020368555e-208,
+        "verdict": "stable"
+      },
+      {
+        "feature": "C1",
+        "psi": 0.0127,
+        "ks": 0.04949142592655309,
+        "ks_p_value": 1.0044028690220138e-155,
+        "verdict": "stable"
+      },
+      {
+        "feature": "MODEL SCORE (valid \u2192 test)",
+        "psi": 0.0108,
+        "ks": 0.037604000857971887,
+        "ks_p_value": 7.493025645149612e-55,
+        "verdict": "stable"
+      },
+      {
+        "feature": "card2",
+        "psi": 0.0101,
+        "ks": 0.021782362388478638,
+        "ks_p_value": 5.786799681928146e-30,
+        "verdict": "stable"
+      },
+      {
+        "feature": "C14",
+        "psi": 0.007,
+        "ks": 0.04097218526385049,
+        "ks_p_value": 7.612823932124133e-107,
+        "verdict": "stable"
+      },
+      {
+        "feature": "TransactionAmt",
+        "psi": 0.0048,
+        "ks": 0.015363662313911286,
+        "ks_p_value": 2.1856329684997734e-15,
+        "verdict": "stable"
+      },
+      {
+        "feature": "card1",
+        "psi": 0.004,
+        "ks": 0.020530039495731955,
+        "ks_p_value": 3.85829598021833e-27,
+        "verdict": "stable"
+      },
+      {
+        "feature": "addr1",
+        "psi": 0.0035,
+        "ks": 0.013562525343167042,
+        "ks_p_value": 7.667557130520072e-11,
+        "verdict": "stable"
+      },
+      {
+        "feature": "C5",
+        "psi": 0.0023,
+        "ks": 0.02296203474785785,
+        "ks_p_value": 7.625459831351728e-34,
+        "verdict": "stable"
+      }
+    ]
+  }
+}

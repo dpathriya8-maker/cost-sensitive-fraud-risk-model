@@ -1,10 +1,10 @@
 # Fraud risk scoring API in a container.
 # Build:  docker build -t fraud-api .
 # Run:    docker run -p 8000:8000 fraud-api      → open http://127.0.0.1:8000/docs
-# Needs the 4 trained files in models/ first (run the notebook up to §10).
+# Needs the 4 trained files in models/ (from the Kaggle run).
 
-# 1. Small official Linux image with Python 3.12 already installed
-FROM python:3.12-slim
+# 1. Small official Linux image with Python 3.13 (same Python as the Kaggle run that trained the model)
+FROM python:3.13-slim
 
 # 2. LightGBM needs the OpenMP runtime (libgomp1), which the slim image doesn't include
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \

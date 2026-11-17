@@ -66,16 +66,46 @@ Files: ONE growing notebook `notebooks/fraud_pipeline.ipynb` (each step adds a s
 - [x] 11 FastAPI + Docker → pipeline §10 (export) + `src/fraud_service.py`, `api/main.py`, `Dockerfile`, `requirements-serve.txt`, `tests/test_api.py`
 - [ ] 12 Wrap-up: mock OA + mock interview + handoff card → `notes/handoff-fraud.md`
 
-Kaggle checkpoint (Run All, optional but gives your real numbers + the 4 model files for the API): now, after Step 11.
+Kaggle checkpoint: ✅ done 17 Nov 2026 (full data). Real numbers below; the Kaggle output zip is kept on the laptop in `kaggle_run/results.zip`.
 
-## My real results
-Fill ONLY from `reports/metrics.json` after running on Kaggle. Never type a number here that you didn't produce.
+## My real results (Kaggle run, 17 Nov 2026)
+Source: `reports/metrics.json`, from the full Kaggle "Save & Run All" (FAST_MODE = True: learning rate 0.1, max 1,000 trees, 20 Optuna trials).
+Data: 590,540 transactions, 434 columns after the merge → 431 features, 3.50% fraud. Time split: train 413,378 | valid 88,581 | test 88,581.
 
-| Model | PR-AUC (test) | ROC-AUC (test) | Brier before → after calibration | Chosen threshold | Expected cost |
+**1. Three boosters, default settings (validation set)**
+
+| Model | PR-AUC | ROC-AUC | Recall at 50% precision | Trees used (cap 1,000) | Train time |
 |---|---|---|---|---|---|
-| LightGBM | | | | | |
-| XGBoost | | | | | |
-| CatBoost | | | | | |
+| LightGBM | **0.656** | **0.928** | **0.675** | 965 | 350 s |
+| XGBoost | 0.599 | 0.915 | 0.602 | 775 | 954 s |
+| CatBoost | 0.595 | 0.909 | 0.595 | 986 | 2,346 s |
+
+Random baseline PR-AUC = fraud rate ≈ 0.034. Leakage demo: random split AUC 0.9525 vs time split 0.9204.
+
+**2. Final model = Optuna-tuned LightGBM:** valid PR-AUC 0.656 → 0.660 (20 trials; small gain).
+
+**3. Calibration (test set; fit on the earlier half of valid)**
+
+| Version | Brier (lower = better) | PR-AUC |
+|---|---|---|
+| raw | 0.0236 | 0.562 |
+| Platt | 0.0236 | 0.562 |
+| **isotonic** | **0.0215** | 0.542 |
+| always say the base rate | 0.0336 | — |
+
+**4. Decision rule on the test set** (88,581 transactions, about 3,080 frauds, $10 per false alarm)
+
+| Rule | Total cost | Flagged | Fraud caught |
+|---|---|---|---|
+| **flag if p × amount > (1 − p) × $10, isotonic p** | **$161,369** | 7,008 | 2,011 |
+| max-F1 threshold (0.26) | $283,650 | 2,699 | 1,589 |
+| same cost rule, raw p (not calibrated) | $309,568 | 1,684 | 1,251 |
+| threshold 0.5 | $332,344 | 1,758 | 1,301 |
+| flag nothing | $469,608 | 0 | 0 |
+
+**5. SHAP top features:** C13, TransactionAmt, C1, card1, card2, addr1, D1, C5, C14, C2 (additivity error 0.0003).
+**6. Drift (valid → test):** every PSI < 0.03 (largest: C13 0.025, D1 0.023); model score PSI 0.011 → all stable.
+**7. API with the real model:** pytest 4/4 pass; /score ≈ 25 ms for the prediction + ≈ 300 ms for SHAP reasons (887 trees × 375 leaves, on a test machine).
 
 ## How to run
 - **Kaggle (heavy steps):** New Notebook → File → Import Notebook → pick the `.ipynb` from `notebooks/` → Add Input → Competition "IEEE-CIS Fraud Detection" → Run All. Download outputs from the right panel (Output) into `reports/` and `models/`.
@@ -83,8 +113,8 @@ Fill ONLY from `reports/metrics.json` after running on Kaggle. Never type a numb
 - **Laptop with no data = DEMO mode:** the notebook makes a small FAKE fraud-like table so every cell runs in ~1 min (for practising the code). Demo numbers go to `reports/metrics_DEMO.json` and must never be quoted as results.
 
 ## Run the API (Step 11)
-First fill `models/` with the 4 files the notebook writes (run it up to §10): `final_lightgbm_tuned.joblib`, `isotonic_calibrator.joblib`, `drift_reference.json`, `feature_info.json`.
-Then copy the pins from `reports/serving_versions.txt` into `requirements-serve.txt` (the model must load with the versions that trained it).
+`models/` now holds the REAL Kaggle-trained files (`final_lightgbm_tuned.joblib`, `isotonic_calibrator.joblib`, `drift_reference.json`, `feature_info.json`), and `requirements-serve.txt` has the exact versions Kaggle trained them with.
+⚠️ Don't "Run All" the laptop notebook in DEMO mode: it would overwrite `models/` and `reports/figures/` with fake-data versions. If that happens, unzip `kaggle_run/results.zip` again.
 
 **A. Laptop, no Docker (Anaconda Prompt, inside the project folder):**
 ```
@@ -92,6 +122,7 @@ pip install -r requirements-serve.txt
 uvicorn api.main:app --reload --port 8000
 ```
 Open http://127.0.0.1:8000/docs → POST /score → "Try it out" → paste `{"TransactionAmt": 480, "ProductCD": "C", "P_emaildomain": "anonymous.com", "DeviceType": "mobile"}` → Execute.
+If your laptop's library versions differ from the pins, sklearn may print an `InconsistentVersionWarning`. That is a warning, not an error: it was tested and gives the same scores. Docker uses the exact pins.
 Tests: `pytest -q` (4 tests: health, score, bad input → 422, drift).
 
 **B. Docker (needs Docker Desktop on Windows):**
