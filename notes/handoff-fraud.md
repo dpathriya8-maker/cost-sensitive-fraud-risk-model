@@ -67,6 +67,7 @@ These are in the study guide, "Top 12 interview questions": why not accuracy · 
 2. 10-question mock OA (posted in Chat 2, unanswered).
 3. 5 mock-interview questions.
 4. Build the Docker image once (it was untested: Docker Hub was blocked in the build sandbox).
+5. Laptop sync: copy the real `models/`, `reports/` and the updated README/pins into `Desktop\cv-projects\02-fraud-risk-model` (the desktop bridge was offline on 17 Nov). The GitHub repo already has everything except the models.
 
 ## Notes for future chats
 - Jupyter autosave overwrote appended notebook sections 3 times. Tell DP to click **Revert** (or File → Reload from Disk) before running.
